@@ -115,6 +115,17 @@ build-dev: deps
 	$(GOBUILD) -race -o $(BUILD_DIR)/$(BINARY_NAME)-dev .
 	@echo "Development build complete: $(BUILD_DIR)/$(BINARY_NAME)-dev"
 
+## build-examples: Build example programs
+.PHONY: build-examples
+build-examples: deps
+	@echo "Building example programs..."
+	@mkdir -p $(BUILD_DIR)/examples
+	CGO_ENABLED=0 $(GOBUILD) $(BUILD_FLAGS) -o $(BUILD_DIR)/examples/poe_status ./examples/poe_status.go
+	CGO_ENABLED=0 $(GOBUILD) $(BUILD_FLAGS) -o $(BUILD_DIR)/examples/poe_status_simple ./examples/poe_status_simple.go
+	CGO_ENABLED=0 $(GOBUILD) $(BUILD_FLAGS) -o $(BUILD_DIR)/examples/poe_management ./examples/poe_management.go
+	@echo "Example programs built in $(BUILD_DIR)/examples/"
+	@echo "Use --debug or -d flag for debug output"
+
 ## install: Install the binary to GOPATH/bin
 .PHONY: install
 install: deps
@@ -161,6 +172,13 @@ test-verbose:
 	@echo "Running verbose tests..."
 	$(GOTEST) -v -x ./...
 	@echo "Verbose tests complete"
+
+## test-examples: Run tests for example programs
+.PHONY: test-examples
+test-examples:
+	@echo "Running example tests..."
+	CGO_ENABLED=0 $(GOTEST) -v ./examples/lib
+	@echo "Example tests complete"
 
 ## test-coverage: Run tests with coverage analysis
 .PHONY: test-coverage

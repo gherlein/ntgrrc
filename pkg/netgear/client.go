@@ -3,7 +3,9 @@ package netgear
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"ntgrrc/pkg/netgear/internal"
@@ -88,6 +90,7 @@ func NewClient(address string, opts ...ClientOption) (*Client, error) {
 
 // detectModel attempts to detect the switch model by making a request to the root page
 func (c *Client) detectModel(ctx context.Context) (Model, error) {
+	// First try the root page
 	resp, err := c.httpClient.Get(ctx, "/", nil)
 	if err != nil {
 		return "", NewNetworkError("failed to connect to switch", err)
@@ -99,6 +102,22 @@ func (c *Client) detectModel(ctx context.Context) (Model, error) {
 	}
 
 	modelString := c.detector.DetectFromHTML(body)
+	
+	// If we only got the generic GS30xEPx from the redirect page,
+	// try to get more specific model info from the login page
+	if modelString == "GS30xEPx" {
+		loginResp, err := c.httpClient.Get(ctx, "/login.cgi", nil)
+		if err == nil {
+			loginBody, err := c.httpClient.ReadBody(loginResp)
+			if err == nil {
+				specificModel := c.detector.DetectFromHTML(loginBody)
+				if specificModel != "" && specificModel != "GS30xEPx" {
+					modelString = specificModel
+				}
+			}
+		}
+	}
+	
 	if modelString == "" {
 		return "", ErrModelNotDetected
 	}
@@ -151,32 +170,29 @@ func (c *Client) Login(ctx context.Context, password string) error {
 
 // loginWithSession performs session-based authentication (30x series)
 func (c *Client) loginWithSession(ctx context.Context, password string) (string, error) {
-	// Encrypt password using MD5
-	encryptedPassword := internal.EncryptPassword(password)
+	// Step 1: Get seed value from login page
+	seedValue, err := c.getSeedValue(ctx, "/login.cgi")
+	if err != nil {
+		return "", NewAuthError("failed to get seed value", err)
+	}
 
-	// Prepare login data
+	// Step 2: Encrypt password using seed value
+	encryptedPassword := c.encryptPassword(password, seedValue)
+
+	// Step 3: Prepare login data
 	data := url.Values{}
 	data.Set("password", encryptedPassword)
 
-	// Make login request
-	headers := map[string]string{
-		"Content-Type": "application/x-www-form-urlencoded",
-	}
-
-	resp, err := c.httpClient.Post(ctx, "/login.cgi", data, headers)
+	// Step 4: Make login request
+	resp, err := c.httpClient.Post(ctx, "/login.cgi", data, nil)
 	if err != nil {
 		return "", NewNetworkError("login request failed", err)
 	}
 
-	body, err := c.httpClient.ReadBody(resp)
-	if err != nil {
-		return "", NewNetworkError("failed to read login response", err)
-	}
-
-	// Extract session token from response
-	token := internal.ExtractSessionToken(body)
+	// Step 5: Extract session token from response headers
+	token := c.extractSessionToken(resp)
 	if token == "" {
-		// Check for error message
+		body, _ := c.httpClient.ReadBody(resp)
 		if errorMsg := internal.ExtractErrorMessage(body); errorMsg != "" {
 			return "", NewAuthError(fmt.Sprintf("login failed: %s", errorMsg), nil)
 		}
@@ -188,36 +204,31 @@ func (c *Client) loginWithSession(ctx context.Context, password string) (string,
 
 // loginWithGambit performs Gambit-based authentication (316 series)
 func (c *Client) loginWithGambit(ctx context.Context, password string) (string, error) {
-	// First, get the login page to extract any required tokens
-	resp, err := c.httpClient.Get(ctx, "/", nil)
+	// Step 1: Get seed value from login page
+	seedValue, err := c.getSeedValue(ctx, "/wmi/login")
 	if err != nil {
-		return "", NewNetworkError("failed to get login page", err)
+		return "", NewAuthError("failed to get seed value", err)
 	}
 
-	body, err := c.httpClient.ReadBody(resp)
-	if err != nil {
-		return "", NewNetworkError("failed to read login page", err)
-	}
+	// Step 2: Encrypt password using seed value
+	encryptedPassword := c.encryptPassword(password, seedValue)
 
-	// Encrypt password
-	encryptedPassword := internal.EncryptPassword(password)
-
-	// Prepare login data for Gambit authentication
+	// Step 3: Prepare login data for Gambit authentication (different field name)
 	data := url.Values{}
-	data.Set("password", encryptedPassword)
+	data.Set("LoginPassword", encryptedPassword)
 
-	// Make login request
-	resp, err = c.httpClient.Post(ctx, "/login.cgi", data, nil)
+	// Step 4: Make login request to correct endpoint
+	resp, err := c.httpClient.Post(ctx, "/redirect.html", data, nil)
 	if err != nil {
 		return "", NewNetworkError("gambit login request failed", err)
 	}
 
-	body, err = c.httpClient.ReadBody(resp)
+	body, err := c.httpClient.ReadBody(resp)
 	if err != nil {
 		return "", NewNetworkError("failed to read gambit login response", err)
 	}
 
-	// Extract Gambit token
+	// Step 5: Extract Gambit token from response body
 	token := internal.ExtractGambitToken(body)
 	if token == "" {
 		if errorMsg := internal.ExtractErrorMessage(body); errorMsg != "" {
@@ -306,4 +317,51 @@ func (c *Client) makeAuthenticatedRequest(ctx context.Context, method, path stri
 		}
 		return c.httpClient.ReadBody(httpResp)
 	}
+}
+
+// getSeedValue retrieves the random seed value from the login page
+func (c *Client) getSeedValue(ctx context.Context, loginPath string) (string, error) {
+	resp, err := c.httpClient.Get(ctx, loginPath, nil)
+	if err != nil {
+		return "", err
+	}
+
+	body, err := c.httpClient.ReadBody(resp)
+	if err != nil {
+		return "", err
+	}
+
+	// Look for seed value in the HTML (input element with id="rand")
+	seedValue := internal.ExtractSeedValue(body)
+	if seedValue == "" {
+		return "", NewAuthError("seed value not found in login page", nil)
+	}
+
+	return seedValue, nil
+}
+
+// encryptPassword encrypts the password using the seed value and special merge algorithm
+func (c *Client) encryptPassword(password, seedValue string) string {
+	return internal.EncryptPasswordWithSeed(password, seedValue)
+}
+
+// extractSessionToken extracts the session token from HTTP response headers
+func (c *Client) extractSessionToken(resp *http.Response) string {
+	cookie := resp.Header.Get("Set-Cookie")
+	sessionIdPrefixes := []string{
+		"SID=", // GS305EPx, GS308EPx
+	}
+	
+	for _, prefix := range sessionIdPrefixes {
+		if strings.HasPrefix(cookie, prefix) {
+			sidVal := cookie[len(prefix):]
+			// Split on semicolon to get just the token value
+			if idx := strings.Index(sidVal, ";"); idx != -1 {
+				return sidVal[:idx]
+			}
+			return sidVal
+		}
+	}
+	
+	return ""
 }

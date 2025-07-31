@@ -18,9 +18,10 @@ type GlobalOptions struct {
 var cli struct {
 	HelpAll      HelpAllFlag  `help:"advanced/full help"`
 	Verbose      bool         `help:"verbose log messages" short:"v"`
+	Debug        bool         `help:"debug output (alias for verbose)" short:"d"`
 	Quiet        bool         `help:"no log messages" short:"q"`
 	OutputFormat OutputFormat `help:"what output format to use [md, json]" enum:"md,json" default:"md" short:"f"`
-	TokenDir     string       `help:"directory to store login tokens" default:"" short:"d"`
+	TokenDir     string       `help:"directory to store login tokens" default:"" short:"t"`
 
 	Version   VersionCommand     `cmd:"" name:"version" help:"show version"`
 	Login     LoginCommand       `cmd:"" name:"login" help:"create a session for further commands (requires admin console password)"`
@@ -44,7 +45,7 @@ func main() {
 	)
 
 	err := options.Run(&GlobalOptions{
-		Verbose:      cli.Verbose,
+		Verbose:      cli.Verbose || cli.Debug, // Debug is an alias for verbose
 		Quiet:        cli.Quiet,
 		OutputFormat: cli.OutputFormat,
 		TokenDir:     cli.TokenDir,

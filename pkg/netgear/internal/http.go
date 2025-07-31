@@ -123,6 +123,33 @@ func EncryptPassword(password string) string {
 	return fmt.Sprintf("%x", hash)
 }
 
+// EncryptPasswordWithSeed encrypts password using seed value and special merge algorithm
+func EncryptPasswordWithSeed(password, seedValue string) string {
+	mergedStr := specialMerge(password, seedValue)
+	hash := md5.Sum([]byte(mergedStr))
+	return fmt.Sprintf("%x", hash)
+}
+
+// specialMerge implements the special interleaving algorithm from Netgear's login.js
+func specialMerge(password, seedValue string) string {
+	var result strings.Builder
+	maxLen := len(password)
+	if len(seedValue) > maxLen {
+		maxLen = len(seedValue)
+	}
+	
+	for i := 0; i < maxLen; i++ {
+		if i < len(password) {
+			result.WriteByte(password[i])
+		}
+		if i < len(seedValue) {
+			result.WriteByte(seedValue[i])
+		}
+	}
+	
+	return result.String()
+}
+
 // GetRedirectLocation extracts the redirect location from a response
 func GetRedirectLocation(resp *http.Response) string {
 	return resp.Header.Get("Location")
