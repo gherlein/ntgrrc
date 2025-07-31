@@ -1,26 +1,38 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"strings"
 )
 
 func printJsonDataTable(item string, header []string, content [][]string) {
-	json := strings.Builder{}
-	json.WriteString(fmt.Sprintf("{\"%s\":[", item))
-	for i, row := range content {
-		if i > 0 {
-			json.WriteString(",")
-		}
-		json.WriteString("{")
-		for i, value := range row {
-			if i > 0 {
-				json.WriteString(",")
+	// Create slice of maps for proper JSON structure
+	var items []map[string]string
+	
+	for _, row := range content {
+		rowData := make(map[string]string)
+		// Handle cases where row length doesn't match header length
+		for i, headerName := range header {
+			if i < len(row) {
+				rowData[headerName] = row[i]
+			} else {
+				rowData[headerName] = ""
 			}
-			json.WriteString(fmt.Sprintf("\"%s\":\"%s\"", header[i], value))
 		}
-		json.WriteString("}")
+		items = append(items, rowData)
 	}
-	json.WriteString("]}")
-	fmt.Println(json.String())
+	
+	// Create the final structure
+	result := map[string][]map[string]string{
+		item: items,
+	}
+	
+	// Use proper JSON marshaling with indentation to handle escaping
+	jsonData, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		fmt.Printf("Error marshaling JSON: %v\n", err)
+		return
+	}
+	
+	fmt.Println(string(jsonData))
 }

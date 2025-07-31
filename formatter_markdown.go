@@ -37,11 +37,12 @@ func printMarkdownTable(header []string, content [][]string) {
 	line.Reset()
 
 	for _, row := range content {
-		for i, value := range row {
-			line.WriteString("| ")
-			line.WriteString(suffixToLength(value, lengths[i]+1))
-		}
 		line.WriteString("|")
+		for i, value := range row {
+			line.WriteString(" ")
+			line.WriteString(suffixToLength(value, lengths[i]))
+			line.WriteString(" |")
+		}
 		fmt.Println(line.String())
 		line.Reset()
 	}

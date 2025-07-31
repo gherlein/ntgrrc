@@ -291,8 +291,16 @@ func createTempTokenDir(t *testing.T) string {
 
 func writeTestToken(t *testing.T, dir, host, token string, model NetgearModel) {
 	tokenPath := tokenFilename(dir, host)
+	
+	// Ensure the directory exists
+	tokenDir := filepath.Dir(tokenPath)
+	err := os.MkdirAll(tokenDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create token directory: %v", err)
+	}
+	
 	content := fmt.Sprintf("%s:%s", model, token)
-	err := os.WriteFile(tokenPath, []byte(content), 0600)
+	err = os.WriteFile(tokenPath, []byte(content), 0600)
 	if err != nil {
 		t.Fatalf("Failed to write test token: %v", err)
 	}

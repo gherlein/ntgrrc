@@ -30,6 +30,76 @@ Legend: \
 ✅ = successfully tested \
 `-`  = not available \
 
+## Library Architecture (New)
+
+ntgrrc is being refactored to support both CLI and library usage. The new architecture separates the core functionality from the CLI interface, allowing other Go programs to import and use ntgrrc as a library.
+
+### Package Structure
+
+```
+ntgrrc/
+├── cmd/ntgrrc/          # CLI application
+├── pkg/netgear/         # Library package
+│   ├── client.go        # Main client interface
+│   ├── auth.go          # Authentication and token management
+│   ├── models.go        # Data structures
+│   ├── poe.go           # POE management
+│   ├── port.go          # Port management
+│   ├── errors.go        # Error types
+│   └── internal/        # Internal implementation
+│       ├── http.go      # HTTP client
+│       └── parser.go    # HTML parsing
+└── examples/            # Usage examples
+```
+
+### Library Usage Example
+
+```go
+import "github.com/nitram509/ntgrrc/pkg/netgear"
+
+// Create client
+client, err := netgear.NewClient("192.168.1.10")
+if err != nil {
+    log.Fatal(err)
+}
+
+// Login
+err = client.Login(context.Background(), "password")
+if err != nil {
+    log.Fatal(err)
+}
+
+// Get POE status
+statuses, err := client.POE().GetStatus(context.Background())
+if err != nil {
+    log.Fatal(err)
+}
+
+// Update POE settings
+err = client.POE().EnablePort(context.Background(), 1)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+### Token Management
+
+The library provides two token management systems:
+
+#### Old Token System (CLI)
+- Files stored in `$TEMP/.config/ntgrrc/token-{hash}`
+- Simple format: raw token string
+- Used by CLI commands for backward compatibility
+
+#### New Token System (Library)
+- Pluggable `TokenManager` interface
+- Two built-in implementations:
+  - `MemoryTokenManager`: In-memory storage for applications
+  - `FileTokenManager`: File-based storage compatible with CLI
+- Enhanced format: `MODEL:TOKEN` for better multi-device support
+
+The two systems coexist during the migration period. The CLI continues to use the old system while the library uses the new system. Future releases will migrate the CLI to use the library.
+
 ## download & installation
 
 This tool is build with the Go programming language

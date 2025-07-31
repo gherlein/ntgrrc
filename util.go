@@ -14,8 +14,9 @@ func max(a int, b int) int {
 }
 
 func suffixToLength(s string, length int) string {
-	if len(s) < length {
-		diff := length - len(s)
+	runeLength := len([]rune(s))
+	if runeLength < length {
+		diff := length - runeLength
 		return s + strings.Repeat(" ", diff)
 	}
 	return s

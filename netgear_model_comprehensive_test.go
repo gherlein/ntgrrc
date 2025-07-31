@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/corbym/gocrest/is"
 	"github.com/corbym/gocrest/then"
@@ -233,10 +234,11 @@ func TestDetectNetgearModel_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("Timeout simulation", func(t *testing.T) {
-		// Create a server that never responds
+		// Create a server that delays response beyond reasonable timeout
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Never write response, let client timeout
-			select {}
+			// Sleep for a very long time to simulate timeout
+			time.Sleep(10 * time.Second)
+			w.Write([]byte("Too late"))
 		}))
 		defer server.Close()
 
