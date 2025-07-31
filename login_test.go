@@ -1,12 +1,11 @@
 package main
 
 import (
-	"github.com/corbym/gocrest/is"
-	"github.com/corbym/gocrest/then"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/corbym/gocrest/is"
+	"github.com/corbym/gocrest/then"
 )
 
 func TestGetSeedValueFromLogin(t *testing.T) {
@@ -55,11 +54,3 @@ func TestFindGambitTokenInResponseHtml(t *testing.T) {
 	then.AssertThat(t, gambit, is.EqualTo("chpbfghbcadbaamekjof"))
 }
 
-func loadTestFile(model string, fileName string) string {
-	fullFileName := filepath.Join("test-data", model, fileName)
-	bytes, err := os.ReadFile(fullFileName)
-	if err != nil {
-		panic(err)
-	}
-	return string(bytes)
-}
