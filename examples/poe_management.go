@@ -34,12 +34,6 @@ func main() {
 
 	switchAddress := args[0]
 	command := args[1]
-	
-	// Get password from environment
-	password := os.Getenv("NETGEAR_PASSWORD")
-	if password == "" {
-		log.Fatal("NETGEAR_PASSWORD environment variable not set")
-	}
 
 	// Create client with file-based token manager for persistence and optional debug
 	tokenManager := netgear.NewFileTokenManager("")
@@ -62,16 +56,18 @@ func main() {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 
-	// Login (will use cached token if available)
+	// Auto-authenticate (will use cached token if available, or environment variables)
 	ctx := context.Background()
 	if debug {
 		fmt.Printf("Debug mode enabled\n")
 		fmt.Printf("Switch: %s, Command: %s\n", switchAddress, command)
 	}
 	
-	err = client.Login(ctx, password)
-	if err != nil {
-		log.Fatalf("Login failed: %v", err)
+	if !client.IsAuthenticated() {
+		err = client.LoginAuto(ctx)
+		if err != nil {
+			log.Fatalf("Authentication failed: %v\nEnsure environment variables are set:\n  NETGEAR_SWITCHES=\"host=password;...\"\n  OR NETGEAR_PASSWORD_<HOST>=password", err)
+		}
 	}
 
 	// Execute command
@@ -111,8 +107,9 @@ Examples:
   %s --debug 192.168.1.10 enable 1 2 3
   %s -d 192.168.1.10 cycle 5
 
-Environment:
-  NETGEAR_PASSWORD - Admin password for the switch
+Environment (choose one):
+  NETGEAR_SWITCHES="host=password;..."          - Multi-switch configuration
+  NETGEAR_PASSWORD_<HOST>=password              - Host-specific password
 `, os.Args[0], os.Args[0], os.Args[0], os.Args[0])
 }
 

@@ -13,13 +13,14 @@ import (
 
 // Client represents a connection to a Netgear switch
 type Client struct {
-	address    string
-	model      Model
-	httpClient *internal.HTTPClient
-	token      string
-	tokenMgr   TokenManager
-	detector   *internal.ModelDetector
-	verbose    bool
+	address     string
+	model       Model
+	httpClient  *internal.HTTPClient
+	token       string
+	tokenMgr    TokenManager
+	passwordMgr PasswordManager
+	detector    *internal.ModelDetector
+	verbose     bool
 }
 
 // ClientOption configures a Client
@@ -46,25 +47,49 @@ func WithVerbose(verbose bool) ClientOption {
 		if c.httpClient != nil {
 			c.httpClient.SetVerbose(verbose)
 		}
+		if c.passwordMgr != nil {
+			if envMgr, ok := c.passwordMgr.(*EnvironmentPasswordManager); ok {
+				envMgr.SetVerbose(verbose)
+			}
+		}
+	}
+}
+
+// WithPasswordManager sets a custom password manager
+func WithPasswordManager(pm PasswordManager) ClientOption {
+	return func(c *Client) {
+		c.passwordMgr = pm
+	}
+}
+
+// WithEnvironmentAuth enables/disables environment variable password lookup
+func WithEnvironmentAuth(enabled bool) ClientOption {
+	return func(c *Client) {
+		if enabled {
+			c.passwordMgr = NewEnvironmentPasswordManagerWithVerbose(c.verbose)
+		} else {
+			c.passwordMgr = nil
+		}
 	}
 }
 
 // NewClient creates a new Netgear switch client
 func NewClient(address string, opts ...ClientOption) (*Client, error) {
 	client := &Client{
-		address:    address,
-		httpClient: internal.NewHTTPClient(address, 10*time.Second, false),
-		tokenMgr:   NewMemoryTokenManager(),
-		detector:   internal.NewModelDetector(),
-		verbose:    false,
+		address:     address,
+		httpClient:  internal.NewHTTPClient(address, 10*time.Second, false),
+		tokenMgr:    NewMemoryTokenManager(),
+		passwordMgr: NewEnvironmentPasswordManager(), // Default to environment password manager
+		detector:    internal.NewModelDetector(),
+		verbose:     false,
 	}
 
-	// Apply options
+	// Apply options (may override defaults)
 	for _, opt := range opts {
 		opt(client)
 	}
 
-	// Try to load existing token first
+	// Try to load existing cached token first
 	ctx := context.Background()
 	token, model, err := client.tokenMgr.GetToken(ctx, address)
 	if err == nil {
@@ -73,16 +98,43 @@ func NewClient(address string, opts ...ClientOption) (*Client, error) {
 		if client.verbose {
 			fmt.Printf("Loaded existing token for model %s\n", model)
 		}
-	} else {
-		// Detect model if no token available
-		model, err := client.detectModel(ctx)
-		if err != nil {
-			return nil, NewModelError("failed to detect switch model", err)
+		return client, nil
+	}
+
+	// No cached token, check for environment password and auto-authenticate
+	if client.passwordMgr != nil {
+		if config, found := client.passwordMgr.GetSwitchConfig(address); found {
+			// Always detect model from the actual switch (ignore config model)
+			model, err := client.detectModel(ctx)
+			if err != nil {
+				return nil, NewModelError("failed to detect switch model", err)
+			}
+			client.model = model
+			if client.verbose {
+				fmt.Printf("Detected model: %s\n", model)
+			}
+
+			// Perform authentication automatically
+			if client.verbose {
+				fmt.Printf("Auto-authenticating with environment password for %s\n", address)
+			}
+			err = client.Login(ctx, config.Password)
+			if err != nil {
+				return nil, fmt.Errorf("auto-authentication failed: %w", err)
+			}
+			
+			return client, nil
 		}
-		client.model = model
-		if client.verbose {
-			fmt.Printf("Detected model: %s\n", model)
-		}
+	}
+
+	// No environment password found, detect model for later manual authentication
+	model, err = client.detectModel(ctx)
+	if err != nil {
+		return nil, NewModelError("failed to detect switch model", err)
+	}
+	client.model = model
+	if client.verbose {
+		fmt.Printf("Detected model: %s (no auto-authentication - call Login() explicitly)\n", model)
 	}
 
 	return client, nil
@@ -132,8 +184,21 @@ func (c *Client) detectModel(ctx context.Context) (Model, error) {
 
 // Login authenticates with the switch
 func (c *Client) Login(ctx context.Context, password string) error {
+	// If no password provided, try environment variables
 	if password == "" {
-		return NewAuthError("password cannot be empty", nil)
+		if c.passwordMgr != nil {
+			if config, found := c.passwordMgr.GetSwitchConfig(c.address); found {
+				password = config.Password
+				// Note: Model should already be detected, don't override from config
+				if c.verbose {
+					fmt.Printf("Using environment password for %s\n", c.address)
+				}
+			} else {
+				return NewAuthError("no password provided and no environment variable found", nil)
+			}
+		} else {
+			return NewAuthError("password cannot be empty", nil)
+		}
 	}
 
 	// Perform authentication based on model type
@@ -166,6 +231,11 @@ func (c *Client) Login(ctx context.Context, password string) error {
 	}
 
 	return nil
+}
+
+// LoginAuto performs automatic authentication using environment variables
+func (c *Client) LoginAuto(ctx context.Context) error {
+	return c.Login(ctx, "") // Empty password triggers environment variable lookup
 }
 
 // loginWithSession performs session-based authentication (30x series)

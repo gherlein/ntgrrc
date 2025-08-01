@@ -54,28 +54,35 @@ func main() {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 
-	// Prompt for password
-	fmt.Print("Enter admin password: ")
-	password, err := readPassword()
-	if err != nil {
-		log.Fatalf("Failed to read password: %v", err)
-	}
-	fmt.Println() // New line after password input
-
-	// Login to the switch
 	ctx := context.Background()
 	if debug {
 		fmt.Println("Debug mode enabled")
 		fmt.Printf("Switch address: %s\n", switchAddress)
 		fmt.Printf("Detected model: %s\n", client.GetModel())
 	}
-	
-	fmt.Println("Logging in...")
-	err = client.Login(ctx, password)
-	if err != nil {
-		log.Fatalf("Login failed: %v", err)
+
+	// Check if we're already authenticated (auto-login happened)
+	if !client.IsAuthenticated() {
+		// Try environment variable authentication first
+		err = client.LoginAuto(ctx)
+		if err != nil {
+			// No environment variables, prompt for password
+			fmt.Print("Enter admin password: ")
+			password, err := readPassword()
+			if err != nil {
+				log.Fatalf("Failed to read password: %v", err)
+			}
+			fmt.Println() // New line after password input
+
+			fmt.Println("Logging in...")
+			err = client.Login(ctx, password)
+			if err != nil {
+				log.Fatalf("Login failed: %v", err)
+			}
+		}
 	}
-	fmt.Printf("Successfully logged in to %s (Model: %s)\n", switchAddress, client.GetModel())
+	
+	fmt.Printf("Successfully authenticated with %s (Model: %s)\n", switchAddress, client.GetModel())
 
 	// Get POE status for all ports
 	fmt.Println("\nFetching POE status...")

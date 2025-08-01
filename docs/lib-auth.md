@@ -10,9 +10,10 @@ If no environment variable is specified, the login will fail with an error. If a
 ### Multi-Switch Configuration Variable
 - **`NETGEAR_SWITCHES`**: Configure multiple switches in a single variable
 - **Format**: `<host1>=<password1>[,<model1>];<host2>=<password2>[,<model2>];...`
+- **Note**: Model specification is optional and will be ignored. The library always probes and detects the actual switch model.
 - **Examples**:
   - `NETGEAR_SWITCHES=switch1=pass123;192.168.1.10=myPassword;switch3=secret456`
-  - `NETGEAR_SWITCHES=switch1=pass123,GS308EPP;192.168.1.10=myPassword,GS305EP`
+  - `NETGEAR_SWITCHES=switch1=pass123,GS308EPP;192.168.1.10=myPassword,GS305EP` (models ignored)
 
 ## Password Resolution Priority
 
