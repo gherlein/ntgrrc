@@ -126,6 +126,15 @@ build-examples: deps
 	@echo "Example programs built in $(BUILD_DIR)/examples/"
 	@echo "Use --debug or -d flag for debug output"
 
+## build-switch-test: Build comprehensive switch test program
+.PHONY: build-switch-test
+build-switch-test: deps
+	@echo "Building switch test program..."
+	@mkdir -p $(BUILD_DIR)/examples
+	cd switch-test && CGO_ENABLED=0 $(GOBUILD) $(BUILD_FLAGS) -o ../$(BUILD_DIR)/examples/switch-test .
+	@echo "Switch test program built: $(BUILD_DIR)/examples/switch-test"
+	@echo "Run with: ./$(BUILD_DIR)/examples/switch-test --help"
+
 ## install: Install the binary to GOPATH/bin
 .PHONY: install
 install: deps
