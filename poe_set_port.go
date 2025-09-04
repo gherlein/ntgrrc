@@ -28,7 +28,7 @@ type PoeSetConfigCommand struct {
 	PortPwr      string `optional:"" help:"power state for port [enable, disable]" short:"s" name:"power"`
 	PwrMode      string `optional:"" help:"power mode [802.3af, legacy, pre-802.3at, 802.3at]" short:"m" name:"mode"`
 	PortPrio     string `optional:"" help:"priority [low, high, critical]" short:"r" name:"priority"`
-	LimitType    string `optional:"" help:"power limit type [none, class, user]" short:"t" name:"limit-type"`
+	LimitType    string `optional:"" help:"power limit type [none, class, user]" short:"y" name:"limit-type"`
 	PwrLimit     string `optional:"" help:"power limit (W) [e.g. '30.0']" short:"l" name:"pwr-limit"`
 	DetecType    string `optional:"" help:"detection type [IEEE 802, legacy, 4pt 802.3af + Legacy]" short:"e" name:"detect-type"`
 	LongerDetect string `optional:"" help:"longer detection time [enable, disable]" name:"longer-detection-time"`

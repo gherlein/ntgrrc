@@ -21,7 +21,7 @@ LDFLAGS := -ldflags "-X main.VERSION=$(VERSION) -X main.BUILD_TIME=$(BUILD_TIME)
 BUILD_FLAGS := $(LDFLAGS) -trimpath
 
 # Directories
-BUILD_DIR := build
+BUILD_DIR := bin
 DIST_DIR := dist
 COVERAGE_DIR := coverage
 BIN_DIR := bin
