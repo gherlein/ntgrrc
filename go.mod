@@ -1,4 +1,4 @@
-module ntgrrc
+module github.com/gherlein/ntgrrc
 
 go 1.23.0
 
