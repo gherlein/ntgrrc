@@ -104,7 +104,7 @@ lint: fmt vet
 build: deps
 	@echo "Building $(BINARY_NAME) for current platform..."
 	@mkdir -p $(BUILD_DIR)
-	$(GOBUILD) $(BUILD_FLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) .
+	$(GOBUILD) $(BUILD_FLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/ntgrrc
 	@echo "Build complete: $(BUILD_DIR)/$(BINARY_NAME)"
 
 ## build-dev: Build with development flags (no optimizations)
@@ -112,7 +112,7 @@ build: deps
 build-dev: deps
 	@echo "Building $(BINARY_NAME) for development..."
 	@mkdir -p $(BUILD_DIR)
-	$(GOBUILD) -race -o $(BUILD_DIR)/$(BINARY_NAME)-dev .
+	$(GOBUILD) -race -o $(BUILD_DIR)/$(BINARY_NAME)-dev ./cmd/ntgrrc
 	@echo "Development build complete: $(BUILD_DIR)/$(BINARY_NAME)-dev"
 
 ## build-examples: Build example programs
@@ -139,7 +139,7 @@ build-switch-test: deps
 .PHONY: install
 install: deps
 	@echo "Installing $(BINARY_NAME)..."
-	$(GOBUILD) $(BUILD_FLAGS) -o $(GOPATH)/bin/$(BINARY_NAME) .
+	$(GOBUILD) $(BUILD_FLAGS) -o $(GOPATH)/bin/$(BINARY_NAME) ./cmd/ntgrrc
 	@echo "Installed to $(GOPATH)/bin/$(BINARY_NAME)"
 
 ## run: Build and run the application with arguments
@@ -152,7 +152,7 @@ run: build
 .PHONY: run-dev
 run-dev:
 	@echo "Running $(BINARY_NAME) in development mode..."
-	$(GOCMD) run -race . $(ARGS)
+	$(GOCMD) run -race ./cmd/ntgrrc $(ARGS)
 
 ## test: Run all tests
 .PHONY: test
@@ -262,7 +262,7 @@ cross-build: deps
 		output_name=$(BINARY_NAME)-$$GOOS-$$GOARCH; \
 		if [ $$GOOS = "windows" ]; then output_name=$$output_name.exe; fi; \
 		echo "Building for $$GOOS/$$GOARCH..."; \
-		GOOS=$$GOOS GOARCH=$$GOARCH $(GOBUILD) $(BUILD_FLAGS) -o $(DIST_DIR)/$$output_name .; \
+		GOOS=$$GOOS GOARCH=$$GOARCH $(GOBUILD) $(BUILD_FLAGS) -o $(DIST_DIR)/$$output_name ./cmd/ntgrrc; \
 		if [ $$? -ne 0 ]; then \
 			echo "❌ Failed to build for $$GOOS/$$GOARCH"; \
 			exit 1; \
@@ -332,7 +332,7 @@ size: build
 debug: deps
 	@echo "Building debug version..."
 	@mkdir -p $(BUILD_DIR)
-	$(GOBUILD) -gcflags="all=-N -l" -o $(BUILD_DIR)/$(BINARY_NAME)-debug .
+	$(GOBUILD) -gcflags="all=-N -l" -o $(BUILD_DIR)/$(BINARY_NAME)-debug ./cmd/ntgrrc
 	@echo "Debug build complete. Run with: dlv exec ./$(BUILD_DIR)/$(BINARY_NAME)-debug"
 
 ## profile: Build with profiling enabled
@@ -340,7 +340,7 @@ debug: deps
 profile: deps
 	@echo "Building with profiling..."
 	@mkdir -p $(BUILD_DIR)
-	$(GOBUILD) -tags profile -o $(BUILD_DIR)/$(BINARY_NAME)-profile .
+	$(GOBUILD) -tags profile -o $(BUILD_DIR)/$(BINARY_NAME)-profile ./cmd/ntgrrc
 	@echo "Profile build complete: $(BUILD_DIR)/$(BINARY_NAME)-profile"
 
 ## check: Run all quality checks
