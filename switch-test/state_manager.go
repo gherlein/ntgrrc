@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"time"
 
-	"ntgrrc/pkg/netgear"
+	"github.com/gherlein/ntgrrc/pkg/netgear"
 )
 
 // SwitchState represents the complete state of a switch

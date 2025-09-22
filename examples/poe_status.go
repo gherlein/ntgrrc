@@ -21,7 +21,7 @@ import (
 	"syscall"
 
 	"golang.org/x/term"
-	"ntgrrc/pkg/netgear"
+	"github.com/gherlein/ntgrrc/pkg/netgear"
 )
 
 func main() {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"ntgrrc/pkg/netgear"
+	"github.com/gherlein/ntgrrc/pkg/netgear"
 )
 
 // TestOperations handles all test sequence implementations

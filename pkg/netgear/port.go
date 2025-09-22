@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"ntgrrc/pkg/netgear/internal"
+	"github.com/gherlein/ntgrrc/pkg/netgear/internal"
 )
 
 // PortManager handles port-related operations

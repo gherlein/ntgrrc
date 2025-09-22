@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"ntgrrc/pkg/netgear"
+	"github.com/gherlein/ntgrrc/pkg/netgear"
 )
 
 // Config holds all program configuration

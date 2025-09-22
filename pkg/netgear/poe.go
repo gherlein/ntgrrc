@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"ntgrrc/pkg/netgear/internal"
+	"github.com/gherlein/ntgrrc/pkg/netgear/internal"
 )
 
 // POEManager handles POE-related operations

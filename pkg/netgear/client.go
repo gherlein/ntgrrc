@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"ntgrrc/pkg/netgear/internal"
+	"github.com/gherlein/ntgrrc/pkg/netgear/internal"
 )
 
 // Client represents a connection to a Netgear switch
