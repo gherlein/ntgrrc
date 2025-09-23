@@ -1,17 +1,18 @@
 # ntgrrc
 
-ntgrrc (Netgear Remote Control) a command line (CLI) tool to manage Netgear managed plus switches 300 series.
+ntgrrc (Netgear Remote Control) is a command line (CLI) tool to manage Netgear managed plus switches 300 series.
 
-Since Netgear does not offer a REST API, this tool uses web scraping techniques to
-manage configuration and show status of the switch.
+## Project Origins and Evolution
 
-This tool is still very limited in its features and more testers and **contributors
-are very welcome**.
+This project is based on the original [ntgrrc project](https://github.com/nitram509/ntgrrc) created by nitram509. We've refactored the codebase to create a reusable Go library and improved CLI tools:
 
-### Build Status
+- **[go-netgear](https://github.com/gherlein/go-netgear)** - A Go library for programmatic control of Netgear switches
+- **[netgearcli](https://github.com/gherlein/netgearcli)** - A modern CLI tool with enhanced features and better UX
+- **ntgrrc** (this project) - Maintains compatibility with the original ntgrrc interface
 
-[![go test](https://github.com/nitram509/ntgrrc/actions/workflows/go-test.yml/badge.svg)](https://github.com/nitram509/ntgrrc/actions/workflows/go-test.yml)
-[![codecov](https://codecov.io/gh/nitram509/ntgrrc/branch/main/graph/badge.svg?token=8LVPP8JVKY)](https://codecov.io/gh/nitram509/ntgrrc)
+This version of ntgrrc provides the same functionality as the original program but is now built on the go-netgear library foundation.
+
+Since Netgear does not offer a REST API, these tools use web scraping techniques to manage configuration and show status of the switch.
 
 ### Supported firmware versions
 
@@ -30,80 +31,49 @@ Legend: \
 ✅ = successfully tested \
 `-`  = not available \
 
-## Library Architecture (New)
+## Architecture
 
-ntgrrc is being refactored to support both CLI and library usage. The new architecture separates the core functionality from the CLI interface, allowing other Go programs to import and use ntgrrc as a library.
+This project has been restructured to use the [go-netgear](https://github.com/gherlein/go-netgear) library as its foundation. The CLI tool is now a thin wrapper around the library functionality.
 
-### Package Structure
+### Project Structure
 
 ```
 ntgrrc/
-├── cmd/ntgrrc/          # CLI application
-├── pkg/netgear/         # Library package
-│   ├── client.go        # Main client interface
-│   ├── auth.go          # Authentication and token management
-│   ├── models.go        # Data structures
-│   ├── poe.go           # POE management
-│   ├── port.go          # Port management
-│   ├── errors.go        # Error types
-│   └── internal/        # Internal implementation
-│       ├── http.go      # HTTP client
-│       └── parser.go    # HTML parsing
-└── examples/            # Usage examples
+├── cmd/ntgrrc/          # CLI application (thin wrapper)
+├── bin/                 # Built binaries
+├── docs/                # Documentation
+└── scripts/             # Build and utility scripts
 ```
 
-### Library Usage Example
+### Library Usage
+
+For programmatic access to Netgear switches, use the [go-netgear](https://github.com/gherlein/go-netgear) library:
 
 ```go
-import "github.com/nitram509/ntgrrc/pkg/netgear"
+import netgear "github.com/gherlein/go-netgear"
 
-// Create client
-client, err := netgear.NewClient("192.168.1.10")
-if err != nil {
-    log.Fatal(err)
-}
-
-// Login
-err = client.Login(context.Background(), "password")
-if err != nil {
-    log.Fatal(err)
-}
-
-// Get POE status
-statuses, err := client.POE().GetStatus(context.Background())
-if err != nil {
-    log.Fatal(err)
-}
-
-// Update POE settings
-err = client.POE().EnablePort(context.Background(), 1)
-if err != nil {
-    log.Fatal(err)
-}
+// The library provides command structures that can be used programmatically
+var loginCmd netgear.LoginCommand
+var poeCmd netgear.PoeCommand
+// ... etc
 ```
 
-### Token Management
+### CLI Compatibility
 
-The library provides two token management systems:
+This version maintains full compatibility with the original ntgrrc command-line interface while being built on the modern go-netgear library foundation.
 
-#### Old Token System (CLI)
-- Files stored in `$TEMP/.config/ntgrrc/token-{hash}`
-- Simple format: raw token string
-- Used by CLI commands for backward compatibility
+## Download & Installation
 
-#### New Token System (Library)
-- Pluggable `TokenManager` interface
-- Two built-in implementations:
-  - `MemoryTokenManager`: In-memory storage for applications
-  - `FileTokenManager`: File-based storage compatible with CLI
-- Enhanced format: `MODEL:TOKEN` for better multi-device support
+This tool is built with the Go programming language. Pre-built binaries for Windows, Linux, and macOS are available for [download](https://github.com/gherlein/ntgrrc/releases).
 
-The two systems coexist during the migration period. The CLI continues to use the old system while the library uses the new system. Future releases will migrate the CLI to use the library.
+Alternatively, you can build from source:
 
-## download & installation
-
-This tool is build with the Go programming language
-and pre-build binaries for Windows, Linux, and MacOSX are available for [download](https://github.com/nitram509/ntgrrc/releases).
+```bash
+git clone https://github.com/gherlein/ntgrrc.git
+cd ntgrrc
+make build
+# Binary will be created in bin/ntgrrc
+```
 
 Just download the fitting binary for your operating system and put it somewhere in your PATH.
 
